@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bench Player Detection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .bench-player {
+            opacity: 0.7;
+            background-color: #f8f9fa;
+        }
+        .demo-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .demo-table th,
+        .demo-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .demo-table th {
+            background-color: #f1f3f4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bench Player Detection Test</h1>
+
+        <h2>Test Results</h2>
+        <div id="test-results"></div>
+
+        <h2>Demo Table</h2>
+        <table class="demo-table">
+            <thead>
+                <tr>
+                    <th>Player</th>
+                    <th>Position</th>
+                    <th>Should Be Detected as Bench</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-test="bench-with-attr">
+                    <td class="home-team-position-player" data-position="Bench">
+                        <span class="player-link-desktop">
+                            <a href="#">Test Player 1</a>
+                        </span>
+                    </td>
+                    <td class="game-details-position">
+                        <span class="position">BN</span>
+                    </td>
+                    <td>✅ Yes (data-position="Bench")</td>
+                </tr>
+
+                <tr data-test="bench-with-bn">
+                    <td class="home-team-position-player" data-position="WR">
+                        <span class="player-link-desktop">
+                            <a href="#">Test Player 2</a>
+                        </span>
+                    </td>
+                    <td class="game-details-position">
+                        <span class="position">BN</span>
+                    </td>
+                    <td>✅ Yes (position text "BN")</td>
+                </tr>
+
+                <tr data-test="active-player">
+                    <td class="home-team-position-player" data-position="QB">
+                        <span class="player-link-desktop">
+                            <a href="#">Test Player 3</a>
+                        </span>
+                    </td>
+                    <td class="game-details-position">
+                        <span class="position">QB</span>
+                    </td>
+                    <td>❌ No (active player)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button onclick="runTests()">Run Tests</button>
+        <button onclick="applyBenchFormatting()">Apply Bench Formatting</button>
+        <button onclick="resetFormatting()">Reset Formatting</button>
+    </div>
+
+    <script>
+        function checkIfPlayerOnBench(playerCell, row) {
+            // Check data-position attribute
+            const position = playerCell.getAttribute('data-position');
+            if (position && position.toLowerCase() === 'bench') {
+                return true;
+            }
+
+            // Check position text content
+            const positionCell = row.querySelector('.game-details-position .position');
+            if (positionCell) {
+                const positionText = positionCell.textContent.trim().toLowerCase();
+                if (positionText === 'bn' || positionText === 'bench') {
+                    return true;
+                }
+            }
+
+            // Check for bench-related class names
+            if (playerCell.classList.contains('bench-player') ||
+                row.classList.contains('bench-row')) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '';
+
+            const tests = [
+                {
+                    name: 'Bench player with data-position="Bench"',
+                    selector: '[data-test="bench-with-attr"]',
+                    expectedBench: true
+                },
+                {
+                    name: 'Player with position text "BN"',
+                    selector: '[data-test="bench-with-bn"]',
+                    expectedBench: true
+                },
+                {
+                    name: 'Active player (QB)',
+                    selector: '[data-test="active-player"]',
+                    expectedBench: false
+                }
+            ];
+
+            tests.forEach(test => {
+                const row = document.querySelector(test.selector);
+                const playerCell = row.querySelector('.home-team-position-player');
+                const isBench = checkIfPlayerOnBench(playerCell, row);
+
+                const result = document.createElement('div');
+                result.className = `test-result ${isBench === test.expectedBench ? 'pass' : 'fail'}`;
+                result.innerHTML = `
+                    <strong>${test.name}</strong><br>
+                    Expected: ${test.expectedBench ? 'Bench' : 'Not Bench'},
+                    Got: ${isBench ? 'Bench' : 'Not Bench'}
+                    ${isBench === test.expectedBench ? '✅ PASS' : '❌ FAIL'}
+                `;
+                resultsDiv.appendChild(result);
+            });
+        }
+
+        function applyBenchFormatting() {
+            const rows = document.querySelectorAll('.demo-table tbody tr');
+            rows.forEach(row => {
+                const playerCell = row.querySelector('.home-team-position-player');
+                if (playerCell) {
+                    const isBench = checkIfPlayerOnBench(playerCell, row);
+                    if (isBench) {
+                        row.classList.add('bench-player');
+                    }
+                }
+            });
+        }
+
+        function resetFormatting() {
+            const rows = document.querySelectorAll('.demo-table tbody tr');
+            rows.forEach(row => {
+                row.classList.remove('bench-player');
+            });
+        }
+
+        // Run tests on page load
+        window.onload = runTests;
+    </script>
+</body>
+</html>
