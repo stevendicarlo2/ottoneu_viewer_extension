@@ -1,28 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Ottoneu Viewer Extension",
+  "name": "Ottoneu Game Formatter",
   "version": "1.0.0",
-  "description": "A Chrome extension for viewing and managing Ottoneu fantasy baseball data",
-  "permissions": [
-    "activeTab",
-    "storage"
-  ],
+  "description": "Enhanced visual formatting for Ottoneu fantasy football game pages",
+  "permissions": [],
   "host_permissions": [
     "https://ottoneu.fangraphs.com/*"
   ],
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "Ottoneu Viewer",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
-  },
-  "background": {
-    "service_worker": "background.js"
-  },
   "content_scripts": [
     {
       "matches": ["https://ottoneu.fangraphs.com/*"],
