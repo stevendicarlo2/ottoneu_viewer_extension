@@ -33,10 +33,7 @@
     // Add CSS styles
     addFormattingStyles();
 
-    // Apply initial formatting with delay to ensure DOM is ready
-    setTimeout(() => {
-      applyGameStateFormatting();
-    }, 1000);
+    applyGameStateFormatting();
 
     // Set up observers for dynamic content
     setupMutationObserver();
@@ -146,65 +143,45 @@
     return false;
   }
 
-  function applyBenchPlayerFormatting(row, playerCell, pointsCell) {
-    // Store the original score if not already stored
-    if (!pointsCell.hasAttribute('data-original-score')) {
-      const originalScore = pointsCell.textContent.trim();
-      if (originalScore !== '--' && originalScore !== '') {
-        pointsCell.setAttribute('data-original-score', originalScore);
-      }
+  // Helper functions for code deduplication
+  function clearFormatting(row, playerCell, pointsCell) {
+    const classes = ['game-completed', 'game-not-started', 'game-bye', 'bench-player'];
+    [playerCell, pointsCell].forEach(el => el.classList.remove(...classes));
+    if (row) row.classList.remove('bench-player');
+
+    // Reset inline styles
+    const resetStyles = { fontWeight: '', fontStyle: '', color: '' };
+    Object.assign(pointsCell.style, resetStyles);
+
+    // Reset player link styles
+    const playerLinks = playerCell.querySelectorAll('.player-link-desktop a, .player-link-mobile a');
+    playerLinks.forEach(link => link.style.fontWeight = '');
+  }
+
+  function setScoreDisplay(pointsCell, score, isStyled = false, fontWeight = '') {
+    pointsCell.textContent = score;
+    if (isStyled) {
+      pointsCell.style.fontStyle = 'italic';
+      pointsCell.style.color = '#6c757d';
     }
+    if (fontWeight) {
+      pointsCell.style.fontWeight = fontWeight;
+    }
+  }
 
-    const originalScore = pointsCell.getAttribute('data-original-score') || pointsCell.textContent.trim();
-
-    // Remove other formatting classes first
-    playerCell.classList.remove('game-completed', 'game-not-started', 'game-bye');
-    pointsCell.classList.remove('game-completed', 'game-not-started', 'game-bye');
-    row.classList.remove('game-completed', 'game-not-started', 'game-bye');
+  function applyBenchPlayerFormatting(row, playerCell, pointsCell) {
+    const currentScore = pointsCell.textContent.trim();
+    clearFormatting(row, playerCell, pointsCell);
 
     // Add bench styling
-    row.classList.add('bench-player');
-    playerCell.classList.add('bench-player');
-    pointsCell.classList.add('bench-player');
+    [row, playerCell, pointsCell].forEach(el => el.classList.add('bench-player'));
 
-    // Reset styles
-    const playerLinks = playerCell.querySelectorAll('.player-link-desktop a, .player-link-mobile a');
-    playerLinks.forEach(link => {
-      link.style.fontWeight = '';
-    });
-    pointsCell.style.fontWeight = '';
-    pointsCell.style.fontStyle = '';
-    pointsCell.style.color = '';
-
-    // Handle bench player score display based on game status
+    // Handle score display - show "--" for unstarted games with 0 score
     const gameInfo = playerCell.querySelector(CONFIG.selectors.gameInfo);
-    if (gameInfo) {
-      const gameStatus = determineGameStatus(gameInfo);
-      if (gameStatus === 'not-started' || gameStatus === 'bye') {
-        // Game hasn't started or is BYE - show --
-        const numericScore = parseFloat(originalScore);
-        if (numericScore === 0) {
-          pointsCell.textContent = '--';
-          pointsCell.style.fontStyle = 'italic';
-          pointsCell.style.color = '#6c757d';
-        } else {
-          pointsCell.textContent = originalScore;
-        }
-      } else {
-        // Game completed - show actual score (including 0 if they scored 0)
-        pointsCell.textContent = originalScore;
-      }
-    } else {
-      // No game info available - assume not started, show -- for zero scores
-      const numericScore = parseFloat(originalScore);
-      if (numericScore === 0) {
-        pointsCell.textContent = '--';
-        pointsCell.style.fontStyle = 'italic';
-        pointsCell.style.color = '#6c757d';
-      } else {
-        pointsCell.textContent = originalScore;
-      }
-    }
+    const gameStatus = gameInfo ? determineGameStatus(gameInfo) : 'not-started';
+    const shouldShowDash = (gameStatus === 'not-started' || gameStatus === 'bye') && parseFloat(currentScore) === 0;
+
+    setScoreDisplay(pointsCell, shouldShowDash ? '--' : currentScore, shouldShowDash);
   }
 
   function determineGameStatus(gameInfoElement) {
@@ -229,86 +206,39 @@
   }
 
   function applyPlayerFormatting(playerCell, pointsCell, gameStatus) {
-    // Get the row element for bench formatting cleanup
     const row = playerCell.closest('tr');
+    const currentScore = pointsCell.textContent.trim();
+    clearFormatting(row, playerCell, pointsCell);
 
-    // Store the original score if not already stored
-    if (!pointsCell.hasAttribute('data-original-score')) {
-      const originalScore = pointsCell.textContent.trim();
-      if (originalScore !== '--' && originalScore !== '') {
-        pointsCell.setAttribute('data-original-score', originalScore);
-      }
-    }
+    // Add status class
+    const statusClass = `game-${gameStatus}`;
+    [playerCell, pointsCell].forEach(el => el.classList.add(statusClass));
 
-    const originalScore = pointsCell.getAttribute('data-original-score') || pointsCell.textContent.trim();
-
-    // Remove existing formatting classes (including bench)
-    playerCell.classList.remove('game-completed', 'game-not-started', 'game-bye', 'bench-player');
-    pointsCell.classList.remove('game-completed', 'game-not-started', 'game-bye', 'bench-player');
-    if (row) row.classList.remove('bench-player');
-
-    // Reset inline styles
-    pointsCell.style.fontWeight = '';
-    pointsCell.style.fontStyle = '';
-    pointsCell.style.color = '';
-
-    // Reset player link styles
     const playerLinks = playerCell.querySelectorAll('.player-link-desktop a, .player-link-mobile a');
-    playerLinks.forEach(link => {
-      link.style.fontWeight = '';
-    });
+    const isZeroScore = parseFloat(currentScore) === 0;
 
-    // Apply formatting based on game status
     switch (gameStatus) {
       case 'completed':
-        // Completed games - keep normal weight
-        playerCell.classList.add('game-completed');
-        pointsCell.classList.add('game-completed');
-        pointsCell.textContent = originalScore;
+        setScoreDisplay(pointsCell, currentScore);
         break;
 
       case 'not-started':
-        // Active players - make bold
-        playerCell.classList.add('game-not-started');
-        pointsCell.classList.add('game-not-started');
-
-        // Make player links bold for active players
-        playerLinks.forEach(link => {
-          link.style.fontWeight = 'bold';
-        });
-
-        // Replace score with "--" for unstarted games (only if score is 0 or 0.00)
-        const numericScore = parseFloat(originalScore);
-        if (numericScore === 0) {
-          pointsCell.textContent = '--';
-          pointsCell.style.fontStyle = 'italic';
-          pointsCell.style.color = '#6c757d';
-          pointsCell.style.fontWeight = 'bold';
+        // Make player links bold
+        playerLinks.forEach(link => link.style.fontWeight = 'bold');
+        // Show "--" for zero scores, otherwise show score in bold
+        if (isZeroScore) {
+          setScoreDisplay(pointsCell, '--', true, 'bold');
         } else {
-          // Keep the actual score if it's not zero, but make it bold
-          pointsCell.textContent = originalScore;
-          pointsCell.style.fontWeight = 'bold';
+          setScoreDisplay(pointsCell, currentScore, false, 'bold');
         }
         break;
 
       case 'bye':
-        // Style for BYE week players
-        playerCell.classList.add('game-bye');
-        pointsCell.classList.add('game-bye');
-
-        const byeScore = parseFloat(originalScore);
-        if (byeScore === 0) {
-          pointsCell.textContent = '--';
-          pointsCell.style.fontStyle = 'italic';
-          pointsCell.style.color = '#6c757d';
-        } else {
-          pointsCell.textContent = originalScore;
-        }
+        setScoreDisplay(pointsCell, isZeroScore ? '--' : currentScore, isZeroScore);
         break;
 
       default:
-        // Unknown status - restore original score
-        pointsCell.textContent = originalScore;
+        setScoreDisplay(pointsCell, currentScore);
         break;
     }
   }
