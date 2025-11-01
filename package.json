@@ -1,0 +1,21 @@
+{
+  "name": "ottoneu-game-formatter",
+  "version": "1.0.0",
+  "description": "Enhanced visual formatting for Ottoneu fantasy football game pages",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "dev": "npm run clean && npm run watch",
+    "prepare": "npm run build && npm run copy-assets",
+    "copy-assets": "cp manifest.json dist/ && cp -r icons dist/"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/chrome": "^0.0.251"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

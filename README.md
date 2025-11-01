@@ -41,12 +41,51 @@ The extension analyzes the game information for each player:
 - Detects bench players by checking for `data-position="Bench"` or position text "BN"
 - Distinguishes between unplayed games (show `--`) and completed games with 0 points (show `0.00`)
 
+## Development
+
+This extension is built with TypeScript for better code organization and type safety.
+
+### Prerequisites
+- Node.js 16 or later
+- npm
+
+### Setup
+1. Clone this repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Building
+- **Development build with watch mode:**
+  ```bash
+  npm run dev
+  ```
+
+- **One-time build:**
+  ```bash
+  npm run build
+  ```
+
+- **Prepare for distribution:**
+  ```bash
+  npm run prepare
+  ```
+
+The built extension will be in the `dist/` folder.
+
+### Project Structure
+- `src/` - TypeScript source files
+- `dist/` - Compiled JavaScript and extension assets
+- `icons/` - Extension icons
+- `manifest.json` - Chrome extension manifest
+
 ## Installation
 
-1. Download or clone this repository
+1. Build the extension (see Development section above)
 2. Open Chrome and go to `chrome://extensions/`
 3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension folder
+4. Click "Load unpacked" and select the `dist/` folder
 5. The extension will automatically activate on Ottoneu pages
 
 ## Usage
