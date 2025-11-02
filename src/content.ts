@@ -51,8 +51,18 @@ const CONFIG: Config = {
     }
   };
 
-type GameStatus = 'completed' | 'not-started' | 'bye' | 'unknown';
+type GameStatus = 'completed' | 'notStarted' | 'inProgress' | 'bye';
 type TeamSide = 'home' | 'away';
+
+interface DisplayInfo {
+  gameStatus: GameStatus | undefined;
+  isBenchPlayer: boolean;
+}
+
+// Exhaustiveness check helper
+function assertUnreachable(_x: never): never {
+  throw new Error("Didn't expect to get here");
+}
 
 (function(): void {
   'use strict';
@@ -128,20 +138,17 @@ type TeamSide = 'home' | 'away';
     if (!playerCell || !pointsCell) return;
 
     // Check if player is on bench
-    const isOnBench = checkIfPlayerOnBench(playerCell, row);
-
-    if (isOnBench) {
-      applyBenchPlayerFormatting(row, playerCell, pointsCell);
-      return; // Skip game status formatting for bench players
-    }
+    const isBenchPlayer = checkIfPlayerOnBench(playerCell, row);
 
     const gameInfo = playerCell.querySelector<HTMLElement>(CONFIG.selectors.gameInfo);
-    if (!gameInfo) return;
+    const gameStatus = gameInfo ? determineGameStatus(gameInfo) : undefined;
 
-    const gameStatus = determineGameStatus(gameInfo);
+    const displayInfo: DisplayInfo = {
+      gameStatus,
+      isBenchPlayer
+    };
 
-    // Apply formatting based on game status
-    applyPlayerFormatting(playerCell, pointsCell, gameStatus);
+    applyPlayerFormatting(playerCell, pointsCell, displayInfo);
   }
 
   function checkIfPlayerOnBench(playerCell: HTMLElement, row: Element): boolean {
@@ -164,60 +171,21 @@ type TeamSide = 'home' | 'away';
   }
 
   // Helper functions for code deduplication
-  function clearFormatting(row: Element | null, playerCell: HTMLElement, pointsCell: HTMLElement): void {
-    const classes = ['game-completed', 'game-not-started', 'game-bye', 'bench-player'];
+  function clearFormatting(playerCell: HTMLElement, pointsCell: HTMLElement): void {
+    const classes = ['game-completed', 'game-notStarted', 'game-inProgress', 'game-bye', 'bench-player'];
+
+    // Clear classes from player and points cells
     [playerCell, pointsCell].forEach(el => el.classList.remove(...classes));
-    if (row) row.classList.remove('bench-player');
-
-    // Reset inline styles
-    const resetStyles: Partial<CSSStyleDeclaration> = {
-      fontWeight: '',
-      fontStyle: '',
-      color: ''
-    };
-    Object.assign(pointsCell.style, resetStyles);
-
-    // Reset player link styles
-    const playerLinks = playerCell.querySelectorAll<HTMLAnchorElement>('.player-link-desktop a, .player-link-mobile a');
-    playerLinks.forEach(link => link.style.fontWeight = '');
   }
 
   function setScoreDisplay(
     pointsCell: HTMLElement,
-    score: string,
-    isStyled = false,
-    fontWeight = ''
+    score: string
   ): void {
     pointsCell.textContent = score;
-    if (isStyled) {
-      pointsCell.style.fontStyle = 'italic';
-      pointsCell.style.color = '#6c757d';
-    }
-    if (fontWeight) {
-      pointsCell.style.fontWeight = fontWeight;
-    }
   }
 
-  function applyBenchPlayerFormatting(
-    row: Element,
-    playerCell: HTMLElement,
-    pointsCell: HTMLElement
-  ): void {
-    const currentScore = pointsCell.textContent?.trim() ?? '';
-    clearFormatting(row, playerCell, pointsCell);
-
-    // Add bench styling
-    [row, playerCell, pointsCell].forEach(el => el.classList.add('bench-player'));
-
-    // Handle score display - show "--" for unstarted games with 0 score
-    const gameInfo = playerCell.querySelector<HTMLElement>(CONFIG.selectors.gameInfo);
-    const gameStatus = gameInfo ? determineGameStatus(gameInfo) : 'not-started';
-    const shouldShowDash = (gameStatus === 'not-started' || gameStatus === 'bye') && parseFloat(currentScore) === 0;
-
-    setScoreDisplay(pointsCell, shouldShowDash ? '--' : currentScore, shouldShowDash);
-  }
-
-  function determineGameStatus(gameInfoElement: HTMLElement): GameStatus {
+  function determineGameStatus(gameInfoElement: HTMLElement): GameStatus | undefined {
     const gameText = gameInfoElement.textContent?.trim() ?? '';
 
     // Check for completed games (W, L, or T with score)
@@ -232,51 +200,52 @@ type TeamSide = 'home' | 'away';
 
     // Check for future games (contains day and time)
     if (/\w{3}\s+\d{1,2}:\d{2}(am|pm)/i.test(gameText)) {
-      return 'not-started';
+      return 'notStarted';
     }
 
-    return 'unknown';
+    return undefined;
   }
 
   function applyPlayerFormatting(
     playerCell: HTMLElement,
     pointsCell: HTMLElement,
-    gameStatus: GameStatus
+    displayInfo: DisplayInfo
   ): void {
-    const row = playerCell.closest('tr');
     const currentScore = pointsCell.textContent?.trim() ?? '';
-    clearFormatting(row, playerCell, pointsCell);
+    clearFormatting(playerCell, pointsCell);
 
-    // Add status class
-    const statusClass = `game-${gameStatus}`;
-    [playerCell, pointsCell].forEach(el => el.classList.add(statusClass));
-
-    const playerLinks = playerCell.querySelectorAll<HTMLAnchorElement>('.player-link-desktop a, .player-link-mobile a');
+    const { gameStatus, isBenchPlayer } = displayInfo;
     const isZeroScore = parseFloat(currentScore) === 0;
+
+    // Add classes to playerCell and pointsCell
+    const classesToAdd: string[] = [];
+    if (isBenchPlayer) {
+      classesToAdd.push('bench-player');
+    }
+    if (gameStatus) {
+      classesToAdd.push(`game-${gameStatus}`);
+    }
+
+    [playerCell, pointsCell].forEach(el => el.classList.add(...classesToAdd));
 
     switch (gameStatus) {
       case 'completed':
-        setScoreDisplay(pointsCell, currentScore);
+      case 'inProgress':
+      case undefined:
+        // Score is already correct, just apply CSS styling
         break;
 
-      case 'not-started':
-        // Make player links bold
-        playerLinks.forEach(link => link.style.fontWeight = 'bold');
-        // Show "--" for zero scores, otherwise show score in bold
+      case 'notStarted':
+      case 'bye':
+        // Show "--" for zero scores, otherwise keep current score
         if (isZeroScore) {
-          setScoreDisplay(pointsCell, '--', true, 'bold');
-        } else {
-          setScoreDisplay(pointsCell, currentScore, false, 'bold');
+          setScoreDisplay(pointsCell, '--');
         }
         break;
 
-      case 'bye':
-        setScoreDisplay(pointsCell, isZeroScore ? '--' : currentScore, isZeroScore);
-        break;
-
       default:
-        setScoreDisplay(pointsCell, currentScore);
-        break;
+        // Exhaustiveness check - this will cause a compile error if any cases are missing
+        assertUnreachable(gameStatus);
     }
   }
 
