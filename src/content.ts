@@ -28,28 +28,19 @@ function throttle<T extends (...args: any[]) => void>(func: T, delay: number): T
   }) as T;
 }
 
-// Configuration
-interface Config {
-  selectors: {
-    gameDetailsTables: string;
-    homePlayerCell: string;
-    awayPlayerCell: string;
-    homePointsCell: string;
-    awayPointsCell: string;
-    gameInfo: string;
-  };
-}
-
-const CONFIG: Config = {
-    selectors: {
-      gameDetailsTables: '.game-details-table, table[class*="game"], table[class*="details"]',
-      homePlayerCell: '.home-team-position-player',
-      awayPlayerCell: '.away-team-position-player',
-      homePointsCell: '.game-page-home-team-text.game-page-points',
-      awayPointsCell: '.game-page-away-team-text.game-page-points',
-      gameInfo: '.player-game-info'
-    }
-  };
+// Selectors
+const SELECTORS = {
+  gameDetailsTables: '.game-details-table, table[class*="game"], table[class*="details"]',
+  homePlayerCell: '.home-team-position-player',
+  awayPlayerCell: '.away-team-position-player',
+  homePointsCell: '.game-page-home-team-text.game-page-points',
+  awayPointsCell: '.game-page-away-team-text.game-page-points',
+  gameInfo: '.player-game-info',
+  tableRows: 'tbody tr',
+  positionCell: '.game-details-position .position',
+  gameDetailsTable: 'game-details-table',
+  gamePagePoints: '.game-page-points'
+};
 
 type GameStatus = 'completed' | 'notStarted' | 'inProgress' | 'bye';
 type TeamSide = 'home' | 'away';
@@ -104,10 +95,10 @@ function assertUnreachable(_x: never): never {
 
     try {
       // Find all game details tables
-      const gameDetailsTables = document.querySelectorAll(CONFIG.selectors.gameDetailsTables);
+      const gameDetailsTables = document.querySelectorAll(SELECTORS.gameDetailsTables);
 
       gameDetailsTables.forEach(table => {
-        const rows = table.querySelectorAll('tbody tr');
+        const rows = table.querySelectorAll(SELECTORS.tableRows);
 
         rows.forEach(row => {
           // Process both home and away players in each row
@@ -128,11 +119,11 @@ function assertUnreachable(_x: never): never {
     let pointsCell: HTMLElement | null;
 
     if (teamSide === 'home') {
-      playerCell = row.querySelector<HTMLElement>(CONFIG.selectors.homePlayerCell);
-      pointsCell = row.querySelector<HTMLElement>(CONFIG.selectors.homePointsCell);
+      playerCell = row.querySelector<HTMLElement>(SELECTORS.homePlayerCell);
+      pointsCell = row.querySelector<HTMLElement>(SELECTORS.homePointsCell);
     } else {
-      playerCell = row.querySelector<HTMLElement>(CONFIG.selectors.awayPlayerCell);
-      pointsCell = row.querySelector<HTMLElement>(CONFIG.selectors.awayPointsCell);
+      playerCell = row.querySelector<HTMLElement>(SELECTORS.awayPlayerCell);
+      pointsCell = row.querySelector<HTMLElement>(SELECTORS.awayPointsCell);
     }
 
     if (!playerCell || !pointsCell) return;
@@ -140,7 +131,7 @@ function assertUnreachable(_x: never): never {
     // Check if player is on bench
     const isBenchPlayer = checkIfPlayerOnBench(playerCell, row);
 
-    const gameInfo = playerCell.querySelector<HTMLElement>(CONFIG.selectors.gameInfo);
+    const gameInfo = playerCell.querySelector<HTMLElement>(SELECTORS.gameInfo);
     const gameStatus = gameInfo ? determineGameStatus(gameInfo) : undefined;
 
     const displayInfo: DisplayInfo = {
@@ -153,21 +144,15 @@ function assertUnreachable(_x: never): never {
 
   function checkIfPlayerOnBench(playerCell: HTMLElement, row: Element): boolean {
     // Check data-position attribute
-    const position = playerCell.getAttribute('data-position');
-    if (position && position.toLowerCase() === 'bench') {
+    const position = playerCell.getAttribute('data-position')?.toLowerCase();
+    if (position === 'bench') {
       return true;
     }
 
     // Check position text content
-    const positionCell = row.querySelector<HTMLElement>('.game-details-position .position');
-    if (positionCell) {
-      const positionText = positionCell.textContent?.trim().toLowerCase();
-      if (positionText === 'bn' || positionText === 'bench') {
-        return true;
-      }
-    }
-
-    return false;
+    const positionCell = row.querySelector<HTMLElement>(SELECTORS.positionCell);
+    const positionText = positionCell?.textContent?.trim().toLowerCase();
+    return positionText === 'bn' || positionText === 'bench';
   }
 
   // Helper functions for code deduplication
@@ -254,8 +239,8 @@ function assertUnreachable(_x: never): never {
       // Check if any added nodes contain relevant data
       const hasRelevantData = Array.from(mutation.addedNodes).some((node) => {
         if (node.nodeType === Node.ELEMENT_NODE && node instanceof Element) {
-          return node.querySelector(CONFIG.selectors.gameDetailsTables) ||
-                 node.classList.contains('game-details-table');
+          return node.querySelector(SELECTORS.gameDetailsTables) ||
+                 node.classList.contains(SELECTORS.gameDetailsTable);
         }
         return false;
       });
@@ -269,7 +254,7 @@ function assertUnreachable(_x: never): never {
     if (mutation.type === 'characterData' || mutation.type === 'childList') {
       const target = mutation.target;
       if (target instanceof Element) {
-        const scoreCell = target.closest('.game-page-points');
+        const scoreCell = target.closest(SELECTORS.gamePagePoints);
         if (scoreCell) {
           return true;
         }
