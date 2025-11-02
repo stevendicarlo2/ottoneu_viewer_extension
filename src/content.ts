@@ -163,13 +163,6 @@ function assertUnreachable(_x: never): never {
     [playerCell, pointsCell].forEach(el => el.classList.remove(...classes));
   }
 
-  function setScoreDisplay(
-    pointsCell: HTMLElement,
-    score: string
-  ): void {
-    pointsCell.textContent = score;
-  }
-
   function determineGameStatus(gameInfoElement: HTMLElement): GameStatus | undefined {
     const gameText = gameInfoElement.textContent?.trim() ?? '';
 
@@ -202,10 +195,10 @@ function assertUnreachable(_x: never): never {
     pointsCell: HTMLElement,
     displayInfo: DisplayInfo
   ): void {
-    const currentScore = pointsCell.textContent?.trim() ?? '';
+    const { gameStatus, isBenchPlayer } = displayInfo;
     clearFormatting(playerCell, pointsCell);
 
-    const { gameStatus, isBenchPlayer } = displayInfo;
+    const currentScore = pointsCell.textContent?.trim() ?? '';
     const isZeroScore = parseFloat(currentScore) === 0;
 
     // Add classes to playerCell and pointsCell
@@ -230,7 +223,7 @@ function assertUnreachable(_x: never): never {
       case 'bye':
         // Show "--" for zero scores, otherwise keep current score
         if (isZeroScore) {
-          setScoreDisplay(pointsCell, '--');
+          pointsCell.textContent = '--';
         }
         break;
 
