@@ -2,14 +2,17 @@
 
 A Chrome extension that enhances the Ottoneu fantasy football experience by providing improved visual formatting for game data.
 
-## Features
+### Before
+![Before Extension](screenshots/before.png)
 
-### Game State Formatting
-The extension automatically formats player information based on their game status:
+### After
+![After Extension](screenshots/after.png)
 
 ### How It Works
 
 Determines the status of each player's game and adds classes with custom CSS to more easily differentiate players who have not yet played, are currently playing, have finished their games, or are on the bench.
+
+## Development
 
 ### Prerequisites
 - Node.js 16 or later
