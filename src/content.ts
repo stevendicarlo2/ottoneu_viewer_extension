@@ -173,14 +173,20 @@ function assertUnreachable(_x: never): never {
   function determineGameStatus(gameInfoElement: HTMLElement): GameStatus | undefined {
     const gameText = gameInfoElement.textContent?.trim() ?? '';
 
-    // Check for completed games (W, L, or T with score)
-    if (gameText.includes('W ') || gameText.includes('L ') || gameText.includes('T ')) {
+    // Check for completed games (W, L, or T with score at start or after space)
+    if (/^[WLT]\s|\s[WLT]\s/.test(gameText)) {
       return 'completed';
     }
 
     // Check for BYE week
     if (gameText.includes('BYE')) {
       return 'bye';
+    }
+
+    // Check for in-progress games (flexible format matching)
+    // Examples: "7-12 @HOU Q2 00:00 HOU35", "14-7 NYG Q3 5:23", "21-0 @WASH Half", etc.
+    if (/\d+-\d+.*[Qq]\d+|\d+-\d+.*[Hh]alf|\d+-\d+.*[Oo][Tt]/.test(gameText)) {
+      return 'inProgress';
     }
 
     // Check for future games (contains day and time)

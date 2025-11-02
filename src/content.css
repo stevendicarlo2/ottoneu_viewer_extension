@@ -1,14 +1,6 @@
 /* Ottoneu Game Formatter Styles */
 
 /* Game state styles */
-.game-notStarted {
-  font-weight: bold !important;
-}
-
-.game-notStarted .game-page-points {
-  font-weight: bold !important;
-}
-
 .game-inProgress {
   font-weight: bold !important;
 }
