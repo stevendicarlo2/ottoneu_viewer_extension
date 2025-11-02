@@ -9,18 +9,18 @@
   font-weight: bold !important;
 }
 
-/* Bench player styles */
-.bench-player {
-  opacity: 0.7 !important;
+/* Style the entire row when it contains bench players */
+tr:has(.bench-player) {
+  opacity: 0.6 !important;
   background-color: #f8f9fa !important;
   transition: opacity 0.3s ease !important;
 }
 
-.bench-player:hover {
+tr:has(.bench-player):hover {
   opacity: 0.9 !important;
 }
 
-.bench-player .game-page-points {
+/* Specific styling for points cells in bench player rows */
+tr:has(.bench-player) .game-page-points {
   color: #6c757d !important;
-  font-style: italic !important;
 }
