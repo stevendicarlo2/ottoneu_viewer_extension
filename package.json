@@ -9,7 +9,7 @@
     "clean": "rm -rf dist",
     "dev": "npm run clean && npm run watch",
     "prepare": "npm run build && npm run copy-assets",
-    "copy-assets": "cp manifest.json dist/ && cp -r icons dist/"
+    "copy-assets": "cp manifest.json dist/ && cp -r icons dist/ && cp src/content.css dist/"
   },
   "devDependencies": {
     "typescript": "^5.3.0",

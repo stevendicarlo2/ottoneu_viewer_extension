@@ -44,45 +44,12 @@ type TeamSide = 'home' | 'away';
   function initialize(): void {
     console.log('Ottoneu Game Formatter loaded');
 
-    // Add CSS styles
-    addFormattingStyles();
+    // CSS styles are now loaded via manifest.json content_scripts
 
     applyGameStateFormatting();
 
     // Set up observers for dynamic content
     setupMutationObserver();
-  }
-
-  function addFormattingStyles(): void {
-    const style = document.createElement('style');
-    style.textContent = `
-      /* Game state styles */
-      .game-not-started {
-        font-weight: bold !important;
-      }
-
-      .game-not-started .game-page-points {
-        font-style: italic !important;
-        color: #6c757d !important;
-      }
-
-      /* Bench player styles */
-      .bench-player {
-        opacity: 0.7 !important;
-        background-color: #f8f9fa !important;
-        transition: opacity 0.3s ease !important;
-      }
-
-      .bench-player:hover {
-        opacity: 0.9 !important;
-      }
-
-      .bench-player .game-page-points {
-        color: #6c757d !important;
-        font-style: italic !important;
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   function applyGameStateFormatting(): void {

@@ -11,6 +11,7 @@
     {
       "matches": ["https://ottoneu.fangraphs.com/*"],
       "js": ["content.js"],
+      "css": ["content.css"],
       "run_at": "document_end"
     }
   ],
