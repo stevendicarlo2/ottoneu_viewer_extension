@@ -1,6 +1,34 @@
 // Ottoneu Game Formatter - Content Script
 // Automatically formats player tables based on game states
 
+// Utilities
+function throttle<T extends (...args: any[]) => void>(func: T, delay: number): T {
+  let lastExecution = 0;
+  let timeoutId: number | null = null;
+
+  return ((...args: Parameters<T>) => {
+    const now = Date.now();
+    const timeSinceLastExecution = now - lastExecution;
+
+    if (timeSinceLastExecution >= delay) {
+      // Execute immediately if enough time has passed
+      lastExecution = now;
+      func(...args);
+    } else {
+      // Schedule execution for the remaining time
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = window.setTimeout(() => {
+        lastExecution = Date.now();
+        func(...args);
+        timeoutId = null;
+      }, delay - timeSinceLastExecution);
+    }
+  }) as T;
+}
+
+// Configuration
 interface Config {
   selectors: {
     gameDetailsTables: string;
@@ -12,18 +40,7 @@ interface Config {
   };
 }
 
-type GameStatus = 'completed' | 'not-started' | 'bye' | 'unknown';
-type TeamSide = 'home' | 'away';
-
-(function(): void {
-  'use strict';
-
-  // State management
-  let formattingTimeout: number | null = null;
-  let isFormatting = false;
-
-  // Configuration
-  const CONFIG: Config = {
+const CONFIG: Config = {
     selectors: {
       gameDetailsTables: '.game-details-table, table[class*="game"], table[class*="details"]',
       homePlayerCell: '.home-team-position-player',
@@ -33,6 +50,18 @@ type TeamSide = 'home' | 'away';
       gameInfo: '.player-game-info'
     }
   };
+
+type GameStatus = 'completed' | 'not-started' | 'bye' | 'unknown';
+type TeamSide = 'home' | 'away';
+
+(function(): void {
+  'use strict';
+
+  // State management
+  let isFormatting = false;
+  let mutationObserver: MutationObserver | null = null;
+
+  // Configuration
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
@@ -49,13 +78,19 @@ type TeamSide = 'home' | 'away';
     applyGameStateFormatting();
 
     // Set up observers for dynamic content
-    setupMutationObserver();
+    createMutationObserver();
+    startObserving();
   }
 
   function applyGameStateFormatting(): void {
+    console.log('Applying formatting');
+
     // Prevent concurrent formatting runs
     if (isFormatting) return;
     isFormatting = true;
+
+    // Temporarily disconnect observer to prevent feedback loop
+    mutationObserver?.disconnect();
 
     try {
       // Find all game details tables
@@ -72,6 +107,9 @@ type TeamSide = 'home' | 'away';
       });
     } finally {
       isFormatting = false;
+
+      // Reconnect observer after our changes are complete
+      startObserving();
     }
   }
 
@@ -242,63 +280,55 @@ type TeamSide = 'home' | 'away';
     }
   }
 
-  function setupMutationObserver(): void {
-    const observer = new MutationObserver((mutations) => {
-      let shouldRefresh = false;
-
-      mutations.forEach((mutation) => {
-        // Only process if we're not currently formatting
-        if (isFormatting) return;
-
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          // Check if any added nodes contain relevant data
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE && node instanceof Element) {
-              const hasRelevantData =
-                node.querySelector(CONFIG.selectors.gameDetailsTables) ||
-                node.classList.contains('game-details-table');
-
-              if (hasRelevantData) {
-                shouldRefresh = true;
-              }
-            }
-          });
+  function shouldRefreshFromMutation(mutation: MutationRecord): boolean {
+    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+      // Check if any added nodes contain relevant data
+      const hasRelevantData = Array.from(mutation.addedNodes).some((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && node instanceof Element) {
+          return node.querySelector(CONFIG.selectors.gameDetailsTables) ||
+                 node.classList.contains('game-details-table');
         }
-
-        // Also check for text changes in score cells
-        if (mutation.type === 'characterData' || mutation.type === 'childList') {
-          const target = mutation.target;
-          if (target instanceof Element && target.closest) {
-            const scoreCell = target.closest('.game-page-points');
-            if (scoreCell) {
-              shouldRefresh = true;
-            }
-          }
-        }
+        return false;
       });
 
-      if (shouldRefresh) {
-        debouncedApplyFormatting();
+      if (hasRelevantData) {
+        return true;
       }
-    });
+    }
 
-    observer.observe(document.body, {
+    // Also check for text changes in score cells
+    if (mutation.type === 'characterData' || mutation.type === 'childList') {
+      const target = mutation.target;
+      if (target instanceof Element) {
+        const scoreCell = target.closest('.game-page-points');
+        if (scoreCell) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function createMutationObserver(): void {
+    //
+    mutationObserver = new MutationObserver(throttle((mutations) => {
+      // Only process if we're not currently formatting
+      if (isFormatting) return;
+
+      const shouldRefresh = mutations.some(shouldRefreshFromMutation);
+
+      if (shouldRefresh) {
+        applyGameStateFormatting();
+      }
+    }, 500));
+  }
+
+  function startObserving(): void {
+    mutationObserver?.observe(document.body, {
       childList: true,
       subtree: true,
       characterData: true
     });
   }
-
-  function debouncedApplyFormatting(): void {
-    // Clear any existing timeout
-    if (formattingTimeout) {
-      clearTimeout(formattingTimeout);
-    }
-
-    // Set a new timeout to apply formatting after a brief delay
-    formattingTimeout = window.setTimeout(() => {
-      applyGameStateFormatting();
-    }, 500);
-  }
-
 })();
