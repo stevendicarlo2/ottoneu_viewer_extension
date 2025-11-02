@@ -38,6 +38,12 @@ Determines the status of each player's game and adds classes with custom CSS to 
   npm run prepare
   ```
 
+- **Create distribution package for Chrome Web Store:**
+  ```bash
+  npm run distribute
+  ```
+  This builds the extension and creates a ZIP file ready for Chrome Web Store submission.
+
 The built extension will be in the `dist/` folder.
 
 ## Installation
